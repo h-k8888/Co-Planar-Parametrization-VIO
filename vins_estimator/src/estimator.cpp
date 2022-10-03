@@ -485,7 +485,7 @@ void Estimator::triangle_img( double cur_frame_time )
     std::vector<int> cur_pid;    //存储的是当前帧图像已经三角化了的点的id，用来生成三角网格
     std::vector<Eigen::Vector2d> cur_ppixels; //存储了当前图三角化了的点的像素坐标
     std::vector<Eigen::Vector3d> cur_ppts; //存储了当前图三角化了的点的世界坐标
-    for(unsigned int i = 0;i<cur_frame.pids_.size(); ++i)
+    for(unsigned int i = 0;i<cur_frame.pids_.size(); ++i) //遍历最新帧中的所有特征点
     {
         int id = cur_frame.pids_[i];
         // 按照特征id找到对应的特征
@@ -497,7 +497,7 @@ void Estimator::triangle_img( double cur_frame_time )
         if(id_feature != f_manager.id_feature_dataset.end())
         {
             auto &it_feature = id_feature->second;
-            if(it_feature.feature_id == cur_frame.pids_[i])
+            if(it_feature.feature_id == cur_frame.pids_[i]) //id对应得上
             {
                 int used_num;
                 used_num = it_feature.feature_per_frame.size();
@@ -511,6 +511,7 @@ void Estimator::triangle_img( double cur_frame_time )
                     Vector3d pts_i = it_feature.feature_per_frame[0].point * it_feature.estimated_depth;
                     Vector3d w_pts_i = Rs[imu_i] * (ric[0] * pts_i + tic[0]) + Ps[imu_i];
 
+                    //计算重投影误差
                     bool flag_ok = true;
                     for (auto &it_per_frame : it_feature.feature_per_frame)
                     {
@@ -526,8 +527,8 @@ void Estimator::triangle_img( double cur_frame_time )
                             Eigen::Vector3d pts_camera_j = ric[0].inverse() * (pts_imu_j - tic[0]);
 
                             double dep_j = pts_camera_j.z();
-                            Eigen::Vector3d pts_j = it_per_frame.point;
-                            Eigen::Vector2d residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();
+                            Eigen::Vector3d pts_j = it_per_frame.point; //measurement in camera j
+                            Eigen::Vector2d residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>(); //x y error in image
                             residual = residual * FOCAL_LENGTH;
                             if(std::abs(residual(0)) > 1. || std::abs(residual(1)) > 1.)
 
@@ -538,7 +539,7 @@ void Estimator::triangle_img( double cur_frame_time )
 //                                        std::cout << "-----------" << residual(0) <<"   "<< residual(1) << "---------" << std::endl;
                         }
                     }
-                    if(flag_ok)
+                    if(flag_ok)//重投影误差足够小
                     {
                         cur_ppixels.push_back(cur_frame.points_on_pixel[i]);
                         cur_pid.push_back(id);
@@ -608,6 +609,7 @@ void Estimator::triangle_img( double cur_frame_time )
 
         for(int index = 0; index < out.numberoftriangles; ++index)
         {
+            //依次获取三角形三个顶点像素坐标、世界系坐标、id
             Eigen::Vector2d pixel_a = cur_ppixels[ out.trianglelist[k] ];
             Eigen::Vector3d feature_a3d = cur_ppts[ out.trianglelist[k] ];
             int feature_a = cur_pid[ out.trianglelist[k] ];
@@ -621,6 +623,7 @@ void Estimator::triangle_img( double cur_frame_time )
             int feature_c = cur_pid[ out.trianglelist[k] ];
             k++;
 
+            //按照id排序 a < b < c
             if( feature_a > feature_c )
             {
                 std::swap(feature_a, feature_c);
@@ -670,7 +673,9 @@ void Estimator::solveOdometry()
         f_manager.triangulate(Ps, tic, ric);
         ROS_DEBUG("triangulation costs %f", t_tri.toc());
 
+        TicToc t_tri_img;
         triangle_img( Headers[WINDOW_SIZE].stamp.toSec() );
+        ROS_WARN("2d feature triangulation costs %f", t_tri_img.toc());
 
         optimization();
     }
@@ -908,6 +913,7 @@ void Estimator::optimization()
         IMUFactor* imu_factor = new IMUFactor(pre_integrations[j]);
         problem.AddResidualBlock(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]);
     }
+
     int f_m_cnt = 0;
     int feature_index = -1;
     for(auto &id_feature: f_manager.id_feature_dataset)

@@ -98,7 +98,7 @@ class Estimator
     MotionEstimator m_estimator;
     InitialEXRotation initial_ex_rotation;
 
-    TriManager tri_manager;
+    TriManager tri_manager; //
 
     bool first_imu;
     bool is_valid, is_key;

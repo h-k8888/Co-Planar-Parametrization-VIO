@@ -41,9 +41,9 @@ class ImageFrame
         IntegrationBase *pre_integration;
         bool is_key_frame;
 
-        std::vector<int> pids_;
-        std::vector<Eigen::Vector2d> points_on_pixel;
-        std::vector<Eigen::Vector2d> points_on_nom;
+        std::vector<int> pids_; //帧内所有特征点的id
+        std::vector<Eigen::Vector2d> points_on_pixel;//pixel coor xy
+        std::vector<Eigen::Vector2d> points_on_nom;//normalized in camera frame
 };
 
 bool VisualIMUAlignment(map<double, ImageFrame> &all_image_frame, Vector3d* Bgs, Vector3d &g, VectorXd &x);

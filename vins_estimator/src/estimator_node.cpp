@@ -53,6 +53,7 @@ bool GetcurguiData( std::vector<Eigen::Matrix4d> &_Twcs,
     lock_guard<mutex> lock(gui_ptr->gui_mutex);
 
     {
+        //获取滑窗内所有变换矩阵
         for(int i=0;i<WINDOW_SIZE+1;i++)
         {
             Eigen::Vector3d twi = estimator.Ps[i];
@@ -94,16 +95,17 @@ bool GetcurguiData( std::vector<Eigen::Matrix4d> &_Twcs,
         if (it_per_id.start_frame > WINDOW_SIZE * 3.0 / 4.0 || it_per_id.solve_flag != 1)
             continue;
         int imu_i = it_per_id.start_frame;
-        Vector3d pts_i = it_per_id.feature_per_frame[0].point * it_per_id.estimated_depth;
-        Vector3d w_pts_i = estimator.Rs[imu_i] * (estimator.ric[0] * pts_i + estimator.tic[0]) + estimator.Ps[imu_i];
+        Vector3d pts_i = it_per_id.feature_per_frame[0].point * it_per_id.estimated_depth; // p * depth
+        Vector3d w_pts_i = estimator.Rs[imu_i] * (estimator.ric[0] * pts_i + estimator.tic[0]) + estimator.Ps[imu_i];//p in world frame
 
 //        _Points.push_back(w_pts_i);
-        id_point_dataset.insert( {it_per_id.feature_id, w_pts_i} );
-        f_id_dataset.insert( it_per_id.feature_id );
+        id_point_dataset.insert( {it_per_id.feature_id, w_pts_i} );//3d points in world frame {point id, coor}
+        f_id_dataset.insert( it_per_id.feature_id ); //point feature id
     }
 
     for( auto &id_tri:estimator.tri_manager.tris )
     {
+        //三角形三个点都在，插入三角形
         if( f_id_dataset.count(id_tri.first.feature_a) == 1 &&
                 f_id_dataset.count(id_tri.first.feature_b) == 1 &&
                 f_id_dataset.count(id_tri.first.feature_c) == 1 )
@@ -430,6 +432,7 @@ void process()
             std::unordered_map< int, Eigen::Vector3d > id_point_dataset;
             TriManager gui_tri;
             double timestamp = img_msg->header.stamp.toSec();
+            //获取滑窗内的变换矩阵、点云、三角形、时间戳
             if(GetcurguiData(_Twcs, id_point_dataset, gui_tri, _times))
                 gui_ptr->update_data( _img, _Twcs, id_point_dataset, gui_tri, _times, timestamp );
 

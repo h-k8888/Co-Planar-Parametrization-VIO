@@ -640,9 +640,9 @@ void Gui::update_data(cv::Mat &_img, std::vector<Eigen::Matrix4d> &_Twcs,
 {
     std::unique_lock<std::mutex> lock(gui_mutex);
 
-    int64_t dataset_t = Twcs_dataset.size();
+    int64_t dataset_t = Twcs_dataset.size(); //index
 
-    std::vector<pangolin::OpenGlMatrix> Twcs;
+    std::vector<pangolin::OpenGlMatrix> Twcs; //滑窗内的变换矩阵
     for( const auto &Twc : _Twcs )
     {
         auto Twc_gl = GetOpenGlMatrix( Twc );

@@ -227,10 +227,11 @@ public:
     {
         if(isBad( triPerFrame, Twc )) return;
 
+        //已三顶点索引查找三角形
         auto it = tris.find( TriID( triPerFrame.feature_a, triPerFrame.feature_b, triPerFrame.feature_c ) );
         if(it != tris.end())
         {
-            it->second.tri_per_frame.insert( {cur_frame_time, triPerFrame} );
+            it->second.tri_per_frame.insert( {cur_frame_time, triPerFrame} ); //已有三角形中插入当前帧
         }
         else
         {
